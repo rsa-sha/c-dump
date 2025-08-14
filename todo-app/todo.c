@@ -8,6 +8,18 @@
 #define F 1
 #define U -1
 #define TODO_FILENAME ".todo.txt"
+char* filename;
+/* Task related declarations and other stuff*/
+typedef enum {
+	NOT_STATRTED = -1,
+	IN_PROGRESS = 0,
+	DONE = 1
+}Status_t;
+#define MAX_TASK_LEN 256
+typedef struct {
+	char name [MAX_TASK_LEN];
+	Status_t status;
+} task_t;
 
 int
 print_usage(){
@@ -18,6 +30,7 @@ print_usage(){
 	printf("list	-> todo list			=> Lists the tasks\n");
 	printf("update	-> todo update task_name status	=> Updates status of the task in the list\n");
 	printf("remove	-> todo remove task_name	=> Removes a task from the list\n");
+	printf("clear	-> removes all tasks		=> Removes all tasks from the list\n");
 	return P;
 }
 
@@ -30,19 +43,19 @@ check_todo_file_existence_or_create(){
 		return F;
 	}
 	size_t path_len = strlen(home) + strlen("/") + strlen(TODO_FILENAME) + 1;
-	char *file = malloc(path_len);
-	if (file == NULL){
+	filename = malloc(path_len);
+	if (filename == NULL){
 		fprintf(stderr, "Memory allocation failed\n");
 		return F;
 	}
-	snprintf(file, path_len, "%s/%s", home, TODO_FILENAME);
+	snprintf(filename, path_len, "%s/%s", home, TODO_FILENAME);
 	// checking for file existence
-	if (access(file, F_OK) == 0){
+	if (access(filename, F_OK) == 0){
 		printf("File exists\n");
 	} else{
 		printf("File does not exist. Creating it\n");
 		FILE* fl;
-		fl = fopen(file, "w");
+		fl = fopen(filename, "w");
 		if (fl == NULL)
 			return F;
 		fclose(fl);
@@ -50,11 +63,32 @@ check_todo_file_existence_or_create(){
 	return P;
 }
 
+int save_task(task_t task){
+	int ret = P;
+	FILE* fl = fopen(filename, "a");
+	if (fl == NULL)
+		return F;
+	else
+		fclose(fl);
+	return P;
+}
 
 int
 add_req(int len, char** args){
 	printf("Call to %s\n", __FUNCTION__);
-	return P;
+	int ret = P;
+	// creating task structure
+	task_t task;
+	if (len!=3){
+		printf("Task name not passed entirely or as a single string\n");
+		ret = F;
+	} else {
+		strncpy(task.name, args[2], sizeof(task.name) - 1);
+		task.name[sizeof(task.name) - 1] = '\0';
+		task.status = NOT_STATRTED;
+		ret = save_task(task);
+	}
+	return ret;
 }
 
 int
@@ -74,6 +108,11 @@ remove_req(int len, char** args){
 	return P;
 }
 
+int
+clear_req(int len, char** args){
+	printf("Call to %s\n", __FUNCTION__);
+	return P;
+}
 /* ToDo CRUD methods end*/
 
 
@@ -90,7 +129,9 @@ entertain_request(int len, char **args){
 		ret = update_req(len, args);
 	} else if ((strcmp(st, "remove"))==0){
 		ret = remove_req(len, args);
-	} else{
+	} else if ((strcmp(st, "clear"))==0){
+		ret = clear_req(len, args);
+	}else{
 		ret = print_usage();
 		ret = U;
 	}
